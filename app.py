@@ -1,41 +1,33 @@
+# app.py
 import streamlit as st
-import joblib
-import numpy as np
 import pandas as pd
-import os
-import datetime
+import joblib
 
-# ✅ Load trained model
-model_path = os.path.join(os.path.dirname(__file__), "car_price_model.joblib")
-model = joblib.load(model_path)
+# Load trained model and encoders
+model = joblib.load("car_price_model.pkl")
+encoders = joblib.load("encoders.pkl")
 
 st.title("🚗 Car Price Prediction App")
-st.write("Enter the details of the car to predict its selling price")
 
-# --- Inputs ---
-year = st.number_input("Year of Manufacture", min_value=1990, max_value=2025, value=2015)
-km_driven = st.number_input("Kilometers Driven", min_value=0, max_value=2000000, value=50000)
+year = st.number_input("Year of Manufacture", min_value=1990, max_value=2025, step=1)
+km_driven = st.number_input("Kilometers Driven", min_value=0, step=500)
+fuel = st.selectbox("Fuel Type", encoders["fuel"].classes_)
+seller_type = st.selectbox("Seller Type", encoders["seller_type"].classes_)
+transmission = st.selectbox("Transmission", encoders["transmission"].classes_)
+owner = st.selectbox("Owner", encoders["owner"].classes_)
+name = st.selectbox("Car Name", encoders["name"].classes_)
 
-fuel = st.selectbox("Fuel Type", ["Petrol", "Diesel", "CNG", "LPG", "Electric"])
-seller_type = st.selectbox("Seller Type", ["Individual", "Dealer", "Trustmark Dealer"])
-transmission = st.selectbox("Transmission", ["Manual", "Automatic"])
-owner = st.selectbox("Owner", ["First Owner", "Second Owner", "Third Owner", "Fourth & Above Owner", "Test Drive Car"])
-
-# --- Derived feature ---
-car_age = 2025 - year
-
-# --- Predict ---
-if st.button("Predict Price"):
+if st.button("🔮 Predict Car Price"):
+    # Encode categorical values using saved encoders
     input_df = pd.DataFrame([{
-        "car_age": car_age,
+        "name": encoders["name"].transform([name])[0],
+        "year": year,
         "km_driven": km_driven,
-        "fuel": fuel,
-        "seller_type": seller_type,
-        "transmission": transmission,
-        "owner": owner
+        "fuel": encoders["fuel"].transform([fuel])[0],
+        "seller_type": encoders["seller_type"].transform([seller_type])[0],
+        "transmission": encoders["transmission"].transform([transmission])[0],
+        "owner": encoders["owner"].transform([owner])[0]
     }])
-
-    log_price = model.predict(input_df)[0]
-    predicted_price = np.expm1(log_price)
-
-    st.success(f"💰 Estimated Selling Price: ₹ {predicted_price:,.0f}")
+    
+    prediction = model.predict(input_df)[0]
+    st.success(f"💰 Predicted Selling Price: **₹{prediction:,.0f}**")
