@@ -1,27 +1,27 @@
-# trained_model.py
 import pandas as pd
 import numpy as np
-import pickle
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+import joblib
+from sklearn.model_selection import KFold, RandomizedSearchCV
 from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingRegressor
 
 # 1. Load dataset
 df = pd.read_csv("CAR DETAILS FROM CAR DEKHO.csv")
 
-# 2. Basic cleaning
+# 2. Clean data
 df = df[df['km_driven'] >= 0]
 km_cut = df['km_driven'].quantile(0.995)
 df = df[df['km_driven'] <= km_cut]
 
-# Feature Engineering
-df['car_age'] = 2025 - df['year']   # calculate car age
+# Add car age
+df['car_age'] = 2025 - df['year']
+
+# Features & target
 X = df[['car_age', 'km_driven', 'fuel', 'seller_type', 'transmission', 'owner']]
 y = df['selling_price']
-y_log = np.log1p(y)   # log-transform target
+y_log = np.log1p(y)
 
 # 3. Preprocessing
 numeric_features = ['car_age', 'km_driven']
@@ -36,27 +36,37 @@ preprocessor = ColumnTransformer(transformers=[
 ])
 
 # 4. Model
-gbr = GradientBoostingRegressor(
-    n_estimators=200,
-    learning_rate=0.05,
-    max_depth=4,
-    random_state=42
-)
-
-# 5. Pipeline
+gbr = GradientBoostingRegressor(random_state=42)
 pipeline = Pipeline(steps=[
     ('pre', preprocessor),
     ('model', gbr)
 ])
 
-# 6. Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y_log, test_size=0.2, random_state=42)
+# 5. Hyperparameter tuning
+param_dist = {
+    'model__learning_rate': [0.01, 0.02, 0.05, 0.1],
+    'model__n_estimators': [100, 150, 200, 300],
+    'model__max_depth': [3, 4, 5],
+}
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
 
-# 7. Train
-pipeline.fit(X_train, y_train)
+search = RandomizedSearchCV(
+    pipeline,
+    param_distributions=param_dist,
+    n_iter=12,
+    cv=cv,
+    scoring='neg_mean_squared_error',
+    n_jobs=-1,
+    verbose=2,
+    random_state=42
+)
 
-# 8. Save model
-with open("car_price_model.pkl", "wb") as f:
-    pickle.dump(pipeline, f)
+print("Training model...")
+search.fit(X, y_log)
 
-print("✅ Model trained and saved as car_price_model.pkl")
+best_estimator = search.best_estimator_
+print("✅ Best Params:", search.best_params_)
+
+# 6. Save model
+joblib.dump(best_estimator, "car_price_model.joblib")
+print("🎉 Model saved as car_price_model.joblib")
