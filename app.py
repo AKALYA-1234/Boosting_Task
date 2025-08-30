@@ -1,33 +1,40 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import joblib
+import datetime
 
-# Load trained model and encoders
-model = joblib.load("car_price_model.pkl")
-encoders = joblib.load("encoders.pkl")
+# Load trained model
+model_path = "car_price_model.pkl"
+pipeline = joblib.load(model_path)
 
 st.title("🚗 Car Price Prediction App")
 
-year = st.number_input("Year of Manufacture", min_value=1990, max_value=2025, step=1)
-km_driven = st.number_input("Kilometers Driven", min_value=0, step=500)
-fuel = st.selectbox("Fuel Type", encoders["fuel"].classes_)
-seller_type = st.selectbox("Seller Type", encoders["seller_type"].classes_)
-transmission = st.selectbox("Transmission", encoders["transmission"].classes_)
-owner = st.selectbox("Owner", encoders["owner"].classes_)
-name = st.selectbox("Car Name", encoders["name"].classes_)
+# User inputs
+year = st.number_input("Car Manufacturing Year", min_value=1990, max_value=datetime.datetime.now().year, step=1)
+km_driven = st.number_input("Kilometers Driven", min_value=0, step=100)
+fuel = st.selectbox("Fuel Type", ["Petrol", "Diesel", "CNG", "LPG", "Electric"])
+seller_type = st.selectbox("Seller Type", ["Individual", "Dealer", "Trustmark Dealer"])
+transmission = st.selectbox("Transmission", ["Manual", "Automatic"])
+owner = st.selectbox("Owner", ["First Owner", "Second Owner", "Third Owner", "Fourth & Above Owner", "Test Drive Car"])
 
-if st.button("🔮 Predict Car Price"):
-    # Encode categorical values using saved encoders
-    input_df = pd.DataFrame([{
-        "name": encoders["name"].transform([name])[0],
-        "year": year,
-        "km_driven": km_driven,
-        "fuel": encoders["fuel"].transform([fuel])[0],
-        "seller_type": encoders["seller_type"].transform([seller_type])[0],
-        "transmission": encoders["transmission"].transform([transmission])[0],
-        "owner": encoders["owner"].transform([owner])[0]
-    }])
-    
-    prediction = model.predict(input_df)[0]
-    st.success(f"💰 Predicted Selling Price: **₹{prediction:,.0f}**")
+# Compute car age
+current_year = datetime.datetime.now().year
+car_age = current_year - year
+
+# Build input data
+input_data = pd.DataFrame([{
+    "year": year,
+    "km_driven": km_driven,
+    "fuel": fuel,
+    "seller_type": seller_type,
+    "transmission": transmission,
+    "owner": owner,
+    "car_age": car_age
+}])
+
+st.write("### Input Data Preview", input_data)
+
+# Prediction
+if st.button("Predict Price"):
+    prediction = pipeline.predict(input_data)[0]
+    st.success(f"💰 Estimated Selling Price: ₹ {prediction:,.2f}")
