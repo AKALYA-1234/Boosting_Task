@@ -2,9 +2,12 @@ import streamlit as st
 import pickle
 import pandas as pd
 
-# Load model & features
-with open("car_price_model.pkl", "rb") as f:
-    model = pickle.load(f)
+import pickle
+from sklearn.ensemble import RandomForestRegressor
+
+model = ... # your trained model
+with open("car_price_model.pkl", "wb") as f:
+    pickle.dump(model, f)
 
 with open("car_price_features.pkl", "rb") as f:
     feature_names = pickle.load(f)

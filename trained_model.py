@@ -6,17 +6,14 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 
-# Load dataset (update path if needed)
 df = pd.read_csv(r"C:\Users\DELL\Downloads\CAR DETAILS FROM CAR DEKHO.csv",encoding='latin1')   # replace with actual dataset file
-# Preprocess dataset
+
 df['car_age'] = 2024 - df['year']   # convert year → age
 df.drop("year", axis=1, inplace=True)
 
-# Target and features
 X = df.drop("selling_price", axis=1)
 y = df["selling_price"]
 
-# Categorical and numeric columns
 categorical_cols = ["fuel", "seller_type", "transmission", "owner", "name"]
 numeric_cols = [col for col in X.columns if col not in categorical_cols]
 
