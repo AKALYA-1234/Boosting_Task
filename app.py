@@ -1,40 +1,42 @@
 import streamlit as st
+import pickle
 import pandas as pd
-import joblib
-import datetime
 
-# Load trained model
-model_path = "car_price_model.pkl"
-pipeline = joblib.load(model_path)
+# Load model & features
+with open("car_price_model.pkl", "rb") as f:
+    model = pickle.load(f)
+
+with open("car_price_features.pkl", "rb") as f:
+    feature_names = pickle.load(f)
 
 st.title("🚗 Car Price Prediction App")
 
-# User inputs
-year = st.number_input("Car Manufacturing Year", min_value=1990, max_value=datetime.datetime.now().year, step=1)
-km_driven = st.number_input("Kilometers Driven", min_value=0, step=100)
+# Inputs
+name = st.text_input("Car Name (e.g. Maruti Swift Dzire)")
+year = st.number_input("Year of Purchase", min_value=1990, max_value=2024, step=1)
+km_driven = st.number_input("Kilometers Driven", min_value=0, step=1000)
 fuel = st.selectbox("Fuel Type", ["Petrol", "Diesel", "CNG", "LPG", "Electric"])
-seller_type = st.selectbox("Seller Type", ["Individual", "Dealer", "Trustmark Dealer"])
+seller_type = st.selectbox("Seller Type", ["Dealer", "Individual", "Trustmark Dealer"])
 transmission = st.selectbox("Transmission", ["Manual", "Automatic"])
 owner = st.selectbox("Owner", ["First Owner", "Second Owner", "Third Owner", "Fourth & Above Owner", "Test Drive Car"])
 
-# Compute car age
-current_year = datetime.datetime.now().year
-car_age = current_year - year
+# Convert year to car_age
+car_age = 2024 - year
 
-# Build input data
-input_data = pd.DataFrame([{
-    "year": year,
-    "km_driven": km_driven,
-    "fuel": fuel,
-    "seller_type": seller_type,
-    "transmission": transmission,
-    "owner": owner,
-    "car_age": car_age
-}])
+# Prepare input data as DataFrame
+input_dict = {
+    "name": [name],
+    "km_driven": [km_driven],
+    "fuel": [fuel],
+    "seller_type": [seller_type],
+    "transmission": [transmission],
+    "owner": [owner],
+    "car_age": [car_age]
+}
 
-st.write("### Input Data Preview", input_data)
+input_df = pd.DataFrame(input_dict)
 
-# Prediction
+# Prediction button
 if st.button("Predict Price"):
-    prediction = pipeline.predict(input_data)[0]
+    prediction = model.predict(input_df)[0]
     st.success(f"💰 Estimated Selling Price: ₹ {prediction:,.2f}")
