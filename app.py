@@ -3,11 +3,12 @@ import pickle
 import pandas as pd
 
 import pickle
-from sklearn.ensemble import RandomForestRegressor
+import sklearn
+print(sklearn.__version__)
 
-model = ... # your trained model
-with open("car_price_model.pkl", "wb") as f:
-    pickle.dump(model, f)
+with open("car_price_model.pkl", "rb") as f:
+    model = pickle.load(f)
+print("Model loaded successfully")
 
 with open("car_price_features.pkl", "rb") as f:
     feature_names = pickle.load(f)
